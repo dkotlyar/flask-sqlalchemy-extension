@@ -1,0 +1,5 @@
+build
+dist
+flask_sqlalchemy_extension.egg-info
+venv
+.idea
