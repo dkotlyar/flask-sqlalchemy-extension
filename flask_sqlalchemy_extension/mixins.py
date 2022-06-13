@@ -10,6 +10,19 @@ class SqlalchemyExtensionError(Exception):
     pass
 
 
+def get_table_columns(table):
+    if not hasattr(table, 'columns'):
+        return []
+
+    columns = [c for c in table.columns]
+
+    for foreign_primary_keys in [c.foreign_keys for c in table.columns if c.primary_key and c.foreign_keys]:
+        for foreign_primary_key in foreign_primary_keys:
+            columns.extend(get_table_columns(foreign_primary_key.column.table))
+
+    return columns
+
+
 class SerializeMixin:
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -48,9 +61,9 @@ class SerializeMixin:
                 _include_set.append(key[0])
                 _subincludes.append(subincl)
 
-        if hasattr(self, '__table__') and hasattr(self.__table__, 'columns'):
+        if hasattr(self, '__table__'):
             return dict(
-                [(c.key, self.get_serialized_attribute(c.key)) for c in self.__table__.columns
+                [(c.key, self.get_serialized_attribute(c.key)) for c in get_table_columns(self.__table__)
                  if c.key not in exclude and (only is None or c.key in only)]
                 + [(key, self.get_serialized_attribute(key, include)) for key, include in zip(_include_set, _subincludes)]
             )
@@ -59,25 +72,12 @@ class SerializeMixin:
 
 class DeserializeMixin:
     def check_constrains(self):
-        if hasattr(self, '__table__') and hasattr(self.__table__, 'columns'):
-            for c in self.__table__.columns:
+        if hasattr(self, '__table__'):
+            for c in get_table_columns(self.__table__):
                 if not c.nullable and not c.primary_key and \
                         self.__getattribute__(c.key) is None and c.default is None:
                     raise SqlalchemyExtensionError(f'Column `{c.key}` must have not null value')
         return self
-
-    def __get_table_columns(self, table, only=None, exclude=None):
-        if not hasattr(table, 'columns'):
-            return []
-
-        columns = [c.key for c in table.columns
-                   if c.key not in exclude and (only is None or c.key in only)]
-
-        for foreign_primary_keys in [c.foreign_keys for c in table.columns if c.primary_key and c.foreign_keys]:
-            for foreign_primary_key in foreign_primary_keys:
-                columns.extend(self.__get_table_columns(foreign_primary_key.column.table, only, exclude))
-
-        return columns
 
     def deserialize(self, data: Dict, only=None, exclude=None, exclude_id=True):
         if exclude is None:
@@ -86,7 +86,8 @@ class DeserializeMixin:
             exclude.append('id')
 
         if hasattr(self, '__table__'):
-            columns = self.__get_table_columns(self.__table__, only=only, exclude=exclude)
+            columns = [c.key for c in get_table_columns(self.__table__)
+                       if c.key not in exclude and (only is None or c.key in only)]
 
             for k, v in data.items():
                 if k in columns:
