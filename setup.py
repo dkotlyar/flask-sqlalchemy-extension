@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
 
+import flask_sqlalchemy_extension
+
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 setup(
     name='flask-sqlalchemy-extension',
-    version='0.0.3',
+    version=flask_sqlalchemy_extension.__version__,
     author='Dmitry Kotlyar',
     author_email='dm.kotlyar@yandex.ru',
     description='Package provided mixins and extension for sqlalchemy and flask-sqlalchemy packages.',

@@ -132,8 +132,8 @@ def create_or_update_product(id=None):
 
 ### Pagination
 
-Pagination with REST accept URL Query attributes `page` (default is 1 in example) и `per_page` (default is 20 in example).
-e.g URL query: `http://<host>/products?page=2&per_page=10`
+Pagination with REST accept URL Query attributes `page` (default is 1 in example) and `per_page` (default is 20 in example).
+e.g. URL query: `http://<host>/products?page=2&per_page=10`
 
 Return response:
 ```json
@@ -193,6 +193,6 @@ Ordering with REST accept attributes starts with `order_by_` and value `DESC` or
 
 Nesting ordering allowed. Split child field name from parent with two underlines.
 
-Пример URL запроса:
+Example:
 1. `http://<host>/products?order_by_price=ASC`
 Select all products, order result with price field by ascending.

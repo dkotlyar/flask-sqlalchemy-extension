@@ -66,15 +66,28 @@ class DeserializeMixin:
                     raise SqlalchemyExtensionError(f'Column `{c.key}` must have not null value')
         return self
 
+    def __get_table_columns(self, table, only=None, exclude=None):
+        if not hasattr(table, 'columns'):
+            return []
+
+        columns = [c.key for c in table.columns
+                   if c.key not in exclude and (only is None or c.key in only)]
+
+        for foreign_primary_keys in [c.foreign_keys for c in table.columns if c.primary_key and c.foreign_keys]:
+            for foreign_primary_key in foreign_primary_keys:
+                columns.extend(self.__get_table_columns(foreign_primary_key.column.table, only, exclude))
+
+        return columns
+
     def deserialize(self, data: Dict, only=None, exclude=None, exclude_id=True):
         if exclude is None:
             exclude = []
         if exclude_id:
             exclude.append('id')
 
-        if hasattr(self, '__table__') and hasattr(self.__table__, 'columns'):
-            columns = [c.key for c in self.__table__.columns
-                       if c.key not in exclude and (only is None or c.key in only)]
+        if hasattr(self, '__table__'):
+            columns = self.__get_table_columns(self.__table__, only=only, exclude=exclude)
+
             for k, v in data.items():
                 if k in columns:
                     self.__setattr__(k, v)
